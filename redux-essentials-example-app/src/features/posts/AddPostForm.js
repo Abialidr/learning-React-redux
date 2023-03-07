@@ -1,22 +1,52 @@
-import { nanoid } from '@reduxjs/toolkit'
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { addPost } from './postsSlice'
+import { addNewPost } from './postsSlice'
+
 export const AddPostForm = () => {
   const [input, setInputs] = useState({
     title: '',
     content: '',
   })
+  const [addRequestStatus, setAddRequestStatus] = useState('idle')
   const [userId, setUserId] = useState('')
+
   const dispatch = useDispatch()
   const users = useSelector((state) => state.users)
+
   const onTitleChanged = (e) => setInputs({ ...input, title: e.target.value })
+
   const onContentChanged = (e) =>
     setInputs({ ...input, content: e.target.value })
+
   const onAuthorChanged = (e) => setUserId(e.target.value)
+
   const canSave =
     Boolean(input.title) && Boolean(input.content) && Boolean(userId)
-  console.log('🚀 ~ file: AddPostForm.js:18 ~ AddPostForm ~ canSave:', canSave)
+
+  const onSavePostClicked = async () => {
+    if (canSave) {
+      try {
+        setAddRequestStatus('pending')
+        await dispatch(
+          addNewPost({
+            title: input.title,
+            content: input.content,
+            user: userId,
+          })
+        ).unwrap()
+        setInputs({
+          title: '',
+          content: '',
+        })
+        setUserId('')
+      } catch (err) {
+        console.error('Failed to save the post: ', err)
+      } finally {
+        setAddRequestStatus('idle')
+      }
+    }
+  }
 
   const usersOptions = users.map((user) => (
     <option key={user.id} value={user.id}>
@@ -29,7 +59,8 @@ export const AddPostForm = () => {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          dispatch(addPost(input.title, input.content, userId))
+          onSavePostClicked()
+          // dispatch(addPost(input.title, input.content, userId))
           setInputs({
             title: '',
             content: '',
